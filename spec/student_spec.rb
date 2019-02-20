@@ -66,4 +66,59 @@ describe Student do
       expect(new_grade).to eq(12)
     end
   end
-end
+  context 'has instance methods to insert data into db' do
+    describe '#table_name_for_insert' do
+      it 'return the table name when called on an instance of Student' do
+        expect(new_student.table_name_for_insert).to eq("students")
+      end
+    end
+
+    describe '#col_names_for_insert' do
+      it 'return the column names when called on an instance of Student' do
+        expect(new_student.col_names_for_insert).to include("name, grade")
+      end
+
+      it 'does not include an id column' do
+        expect(new_student.col_names_for_insert).not_to include("id")
+      end
+    end
+
+    describe '#values_for_insert' do
+      it 'formats the column names to be used in a SQL statement' do
+        expect(new_student.values_for_insert).to eq("'Sam', '11'")
+      end
+    end
+
+    describe '#save' do
+      it 'saves the student to the db' do
+        new_student.save
+        expect(DB[:conn].execute("SELECT * FROM students WHERE name = 'Sam'")).to eq([{"id"=>1, "name"=>"Sam", "grade"=>11, 0=>1, 1=>"Sam", 2=>11}])
+      end
+
+      it 'sets the student\'s id' do
+        new_student.save
+        expect(new_student.id).to eq(1)
+      end
+    end
+  end
+
+  describe '.find_by_name' do
+    it 'executes the SQL to find a row by name' do
+      Student.new({name: "Jan", grade: 10}).save
+      expect(Student.find_by_name("Jan")).to eq([{"id"=>1, "name"=>"Jan", "grade"=>10, 0=>1, 1=>"Jan", 2=>10}])
+    end
+  end
+
+  describe '.find_by' do
+    it 'executes the SQL to find a row by the attribute passed into the method' do
+      Student.new({name: "Susan", grade: 10}).save
+      expect(Student.find_by({name: "Susan"})).to eq([{"id"=>1, "name"=>"Susan", "grade"=>10, 0=>1, 1=>"Susan", 2=>10}])
+    end
+
+    it 'accounts for when an attribute value is an integer' do
+      Student.new({name: "Susan", grade: 10}).save
+      Student.new({name: "Geraldine", grade: 9}).save
+      expect(Student.find_by({grade: 10})).to eq([{"id"=>1, "name"=>"Susan", "grade"=>10, 0=>1, 1=>"Susan", 2=>10}])
+    end
+  end
+  end
